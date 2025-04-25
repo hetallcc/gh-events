@@ -20,10 +20,8 @@ jobs:
       - name: Generate summary with GPT-4
         id: generate_summary
         run: |
-          SUMMARY=$(curl https://api.openai.com/v1/chat/completions \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
-            -d @- <<EOF
+          DIFF_CONTENT=$(cat diff.txt | jq -Rs .) # safely encode as JSON string
+          REQUEST_BODY=$(cat <<EOF
           {
             "model": "gpt-4",
             "messages": [
@@ -33,12 +31,18 @@ jobs:
               },
               {
                 "role": "user",
-                "content": "Here is the pull request diff:\n$(cat diff.txt)"
+                "content": $DIFF_CONTENT
               }
             ]
           }
-            EOF
-          | jq -r '.choices[0].message.content')
+          EOF
+          )
+
+          SUMMARY=$(curl https://api.openai.com/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+            -d "$REQUEST_BODY" | jq -r '.choices[0].message.content')
+
           echo "$SUMMARY" > summary.txt
           echo "summary<<EOF" >> $GITHUB_OUTPUT
           echo "$SUMMARY" >> $GITHUB_OUTPUT
