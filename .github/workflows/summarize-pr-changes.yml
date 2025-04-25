@@ -14,6 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Get PR diff
         id: get_diff
         run: |
@@ -52,7 +55,13 @@ jobs:
           echo "$SUMMARY" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Post AI summary as PR comment
+      - name: Debug summary output
+        run: |
+          echo "======= SUMMARY ======="
+          cat summary.txt
+          echo "======================="
+
+      - name: Post AI summary as PR comment (gh CLI)
         run: |
           gh pr comment ${{ github.event.pull_request.number }} --body-file summary.txt
         env:
