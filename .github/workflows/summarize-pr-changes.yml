@@ -1,0 +1,51 @@
+name: PR Summarizer Bot
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get PR diff
+        id: get_diff
+        run: |
+          gh pr diff ${{ github.event.pull_request.number }} > diff.txt
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate summary with GPT-4
+        id: generate_summary
+        run: |
+          SUMMARY=$(curl https://api.openai.com/v1/chat/completions \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+            -d @- <<EOF
+          {
+            "model": "gpt-4",
+            "messages": [
+              {
+                "role": "system",
+                "content": "You are an expert developer assistant. Summarize the changes in this pull request clearly for both developers and product stakeholders."
+              },
+              {
+                "role": "user",
+                "content": "Here is the pull request diff:\n$(cat diff.txt)"
+              }
+            ]
+          }
+            EOF
+          | jq -r '.choices[0].message.content')
+          echo "$SUMMARY" > summary.txt
+          echo "summary<<EOF" >> $GITHUB_OUTPUT
+          echo "$SUMMARY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Post AI summary as PR comment
+        run: |
+          gh pr comment ${{ github.event.pull_request.number }} --body "$(cat summary.txt)"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
