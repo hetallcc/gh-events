@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+/.vs/01 Starting Project/CopilotIndices/17.13.441.19478
+/.vs/01 Starting Project/FileContentIndex
+/.vs/01 Starting Project/v17/TestStore/0/testlog.manifest
+*.sqlite
+*.testlog
